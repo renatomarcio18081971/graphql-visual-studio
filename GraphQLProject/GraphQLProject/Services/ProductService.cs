@@ -1,4 +1,5 @@
-﻿using GraphQLProject.Interfaces;
+﻿using GraphQLProject.Data;
+using GraphQLProject.Interfaces;
 using GraphQLProject.Models;
 using System;
 using System.Collections.Generic;
@@ -8,31 +9,39 @@ namespace GraphQLProject.Services
 {
     public class ProductService : IProduct
     {
-        private static List<Product> products = new List<Product>
+        private GraphQLDbContext _dbContext;
+
+        public ProductService(GraphQLDbContext dbContext)
         {
-            new Product { Id = 1, Name = "beans", Price = 10},
-            new Product { Id = 2, Name = "rice", Price = 15}
-        };
+            _dbContext = dbContext;
+        }
 
         public Product AddProduct(Product product)
         {
-            products.Add(product);
+            _dbContext.Product.Add(product);
+            _dbContext.SaveChanges();
             return product;
         }
 
         public void DeleteProduct(int id)
         {
-            products.RemoveAt(id);
+            var excluir = _dbContext.Product.FirstOrDefault(a => a.Id == id);
+            if (excluir == null)
+            {
+                throw new Exception("Product not found");
+            }
+            _dbContext.Product.Remove(excluir);
+            _dbContext.SaveChanges();
         }
 
         public List<Product> GetAllProducts()
         {
-            return products;
+            return _dbContext.Product.ToList();
         }
 
         public Product GetProductById(int id)
         {
-            var produto = products.Where(a => a.Id == id)
+            var produto = _dbContext.Product.Where(a => a.Id == id)
                                   .Select(a => new Product
                                   {
                                       Id = a.Id,
@@ -45,8 +54,16 @@ namespace GraphQLProject.Services
 
         public Product UpdateProduct(int id, Product product)
         {
-            products[id] = product;
-            return product;
+            var update = _dbContext.Product.FirstOrDefault(a => a.Id == id);
+            if (update == null)
+            {
+                throw new Exception("Product not found");
+            }
+            update.Name = product.Name;
+            update.Price = product.Price;
+            _dbContext.Add(update);
+            _dbContext.SaveChanges();
+            return update;
         }
     }
 }
